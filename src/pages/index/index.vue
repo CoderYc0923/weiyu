@@ -1,7 +1,7 @@
 <template>
   <view class="content" :style="{ backgroundImage: bgHomeImg }">
     <text class="title">{{ title }}</text>
-    <view class="tools">
+    <view class="tools" v-if="isShow">
       <text class="tools-item">亲口说</text>
       <text class="tools-item">上传录音</text>
     </view>
@@ -17,7 +17,8 @@ export default {
     return {
       title: '未语',
       btntitle: '说出想说的话，我会帮你传达',
-      count: 1000
+      count: 1000,
+      isShow: false
     }
   },
   onShow() {
@@ -30,7 +31,7 @@ export default {
   },
   methods: {
     handleClick() {
-      console.log('点击了');
+      this.isShow = true;
     }
   },
 }
