@@ -1,48 +1,89 @@
 <template>
-  <view class="content">
-    <image class="logo" src="/static/logo.png"></image>
-    <view class="text-area">
-      <text class="title">{{ title }}</text>
+  <view class="content" :style="{ backgroundImage: bgHomeImg }">
+    <text class="title">{{ title }}</text>
+    <view class="tools">
+      <text class="tools-item">亲口说</text>
+      <text class="tools-item">上传录音</text>
     </view>
+    <text class="sub-title">倾听了{{ count }}次对话</text>
+    <text class="btn-title" @click="handleClick">{{ btntitle }}</text>
   </view>
 </template>
 
 <script>
+import homeImg from '../../static/img/localImg';
 export default {
   data() {
     return {
-      title: 'Hello',
+      title: '未语',
+      btntitle: '说出想说的话，我会帮你传达',
+      count: 1000
     }
   },
-  onLoad() {},
-  methods: {},
+  onShow() {
+    this.subTitle = ``
+  },
+  computed: {
+    bgHomeImg() {
+      return `url(${homeImg})`
+    }
+  },
+  methods: {
+    handleClick() {
+      console.log('点击了');
+    }
+  },
 }
 </script>
 
 <style>
 .content {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  color: aliceblue;
 }
 
-.logo {
-  height: 200rpx;
-  width: 200rpx;
-  margin-top: 200rpx;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 50rpx;
-}
-
-.text-area {
+.tools {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-evenly;
+  width: 100%;
+  height: 100rpx;
+  color: #222121;
+  font-size: 12px;
 }
+
+.tools-item {
+  padding: 5rpx;
+  border-bottom: 1px double rgba(0, 0, 0, 0.3);
+}
+
 
 .title {
-  font-size: 36rpx;
-  color: #8f8f94;
+  position: absolute;
+  top: 50rpx;
+  left: 100rpx;
+}
+
+.sub-title {
+  position: absolute;
+  top: 100rpx;
+  left: 150rpx;
+}
+
+.btn-title {
+  position: absolute;
+  top: 90%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .3);
+  padding-bottom: 8rpx;
 }
 </style>
