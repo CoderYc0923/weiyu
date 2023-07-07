@@ -1,7 +1,7 @@
 <template>
   <view class="content" :style="{ backgroundImage: bgHomeImg }">
     <text class="title">{{ title }}</text>
-    <view class="tools" v-if="!isShow">
+    <view class="tools" v-if="isShow">
       <audio-show @playState="watchPlayState" v-if="isPlay"></audio-show>
       <view class="tools-bottom">
         <text class="tools-item" @click="startRecord">亲口说</text>
@@ -9,7 +9,9 @@
       </view>
     </view>
     <text class="sub-title">倾听了{{ count }}次对话</text>
-    <text class="btn-title" @click="handleClick">{{ btntitle }}</text>
+    <text class="email-title" v-if="canEmail">把想说的话塞进她（他）的邮箱吧</text>
+    <input class="uni-input" v-if="canEmail" focus confirm-type="send" @confirm="handleComfirm" @blur="handleComfirm" />
+    <text class="btn-title" @click="handleClick">{{ btnTitle }}</text>
     <record-show @close="close" v-if="showRecord"></record-show>
   </view>
 </template>
@@ -18,6 +20,8 @@
 import audioShow from '../../components/audioShow'
 import recordShow from '../../components/recordShow'
 import homeImg from "../../static/img/localImg";
+import showMessage from '../../utils/showMessage'
+
 var innerAudioContext;
 export default {
   components: {
@@ -27,13 +31,15 @@ export default {
   data() {
     return {
       title: "未语",
-      btntitle: "说出想说的话，我会帮你传达",
       count: 1000,
       isShow: false,
+      btnTitle: '',
       extension: ["m4a", "mp3", "wav", "aac"],
       maxSize: 2 * 1024 * 1024,
       isPlay: false,
       showRecord: false,
+      canEmail: false,
+      activeEmail: ''
     };
   },
   onUnload() {
@@ -46,9 +52,38 @@ export default {
       return `url(${homeImg})`;
     },
   },
+  watch: {
+    isShow: {
+      handler(newV, oldV) {
+        this.btnTitle = newV ? '发送给她（他）' : '说出想说的话，我会帮你传达'
+      },
+      immediate: true
+    }
+  },
   methods: {
     handleClick() {
+      this.isShow ? this.handleSend() : this.handleShow()
+    },
+    handleShow() {
       this.isShow = true;
+    },
+    handleSend() {
+      this.canEmail ? this.sendMail(this.activeEmail) : showMessage('还没说出你想说的话喔')
+    },
+    sendMail(email) {
+      if (this.checkMail(email)) {
+        //调用接口发送请求
+      } else {
+        showMessage('输入的邮箱有误喔')
+      }
+    },
+    checkMail(email) {
+      console.log('checkMail',email);
+      const reg = new RegExp('^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$');
+      return reg.test(email)
+    },
+    handleComfirm(e) {
+      this.activeEmail = e.detail.value
     },
     startRecord() {
       this.showRecord = true
@@ -64,6 +99,7 @@ export default {
         return;
       }
       this.createAudioPlay(voicePath);
+      this.canEmail = true;
     },
     watchPlayState(state) {
       switch (state) {
@@ -123,6 +159,7 @@ export default {
             return;
           }
           _this.createAudioPlay(path);
+          _this.canEmail = true;
         },
       });
     },
@@ -177,6 +214,28 @@ export default {
   position: absolute;
   top: 100rpx;
   left: 150rpx;
+}
+
+.email-title {
+  position: absolute;
+  top: 65%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+}
+
+.uni-input {
+  box-sizing: border-box;
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  border-radius: 80rpx;
+  box-shadow: 0 0 6rpx 4rpx rgba(255, 255, 255, .6);
+  font-size: 12px;
+  height: 60rpx;
+  padding: 0 15%;
 }
 
 .btn-title {
