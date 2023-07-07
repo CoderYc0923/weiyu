@@ -1,32 +1,46 @@
 <template>
   <view class="content" :style="{ backgroundImage: bgHomeImg }">
     <text class="title">{{ title }}</text>
-
-    <view class="tools" v-if="isShow">
+    <view class="tools" v-if="!isShow">
+      <audio-show @playState="watchPlayState" v-if="isPlay"></audio-show>
       <view class="tools-bottom">
-        <text class="tools-item">亲口说</text>
+        <text class="tools-item" @click="startRecord">亲口说</text>
         <text class="tools-item" @click="uploadFile">上传录音</text>
       </view>
     </view>
     <text class="sub-title">倾听了{{ count }}次对话</text>
     <text class="btn-title" @click="handleClick">{{ btntitle }}</text>
+    <record-show @close="close" v-if="showRecord"></record-show>
   </view>
 </template>
 
 <script>
+import audioShow from '../../components/audioShow'
+import recordShow from '../../components/recordShow'
 import homeImg from "../../static/img/localImg";
+var innerAudioContext;
 export default {
+  components: {
+    audioShow,
+    recordShow
+  },
   data() {
     return {
       title: "未语",
       btntitle: "说出想说的话，我会帮你传达",
       count: 1000,
       isShow: false,
-      extension: ["m4a", "mp3", "wav"],
+      extension: ["m4a", "mp3", "wav", "aac"],
       maxSize: 2 * 1024 * 1024,
+      isPlay: false,
+      showRecord: false,
     };
   },
-  onShow() {},
+  onUnload() {
+    if (innerAudioContext) {
+      innerAudioContext.destroy();
+    }
+  },
   computed: {
     bgHomeImg() {
       return `url(${homeImg})`;
@@ -36,6 +50,30 @@ export default {
     handleClick() {
       this.isShow = true;
     },
+    startRecord() {
+      this.showRecord = true
+    },
+    close(voicePath, fileSize) {
+      this.showRecord = false
+      if (!voicePath) {
+        console.log('录音为空');
+        return;
+      };
+      if (!this.checkTypeAndSize(fileSize, voicePath)) {
+        console.log("录音格式错误或大小超出限制");
+        return;
+      }
+      this.createAudioPlay(voicePath);
+    },
+    watchPlayState(state) {
+      switch (state) {
+        case 'running':
+          innerAudioContext.play();
+          break;
+        case 'paused':
+          innerAudioContext.pause();
+      }
+    },
     checkTypeAndSize(size, path) {
       if (size > this.maxSize) return false;
       let fileType = path.match(/[^.]+$/)[0];
@@ -43,15 +81,32 @@ export default {
       return true;
     },
     createAudioPlay(path) {
-      const innerAudioContext = uni.createInnerAudioContext();
+      if (innerAudioContext) {
+        console.log('已存在音频');
+        return;
+      }
+      innerAudioContext = uni.createInnerAudioContext();
       innerAudioContext.autoplay = true;
       innerAudioContext.src = path
+      innerAudioContext.onCanplay(() => {
+        console.log("可以播放");
+      });
       innerAudioContext.onPlay(() => {
         console.log("开始播放");
+        this.isPlay = true;
+      });
+      innerAudioContext.onPause(() => {
+        console.log("暂停播放");
+      });
+      innerAudioContext.onEnded(() => {
+        console.log("播放结束");
+        this.isPlay = false;
+        innerAudioContext.destroy();
       });
       innerAudioContext.onError((res) => {
         console.log(res.errMsg);
         console.log(res.errCode);
+        innerAudioContext.destroy();
       });
     },
     uploadFile() {
