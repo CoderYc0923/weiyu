@@ -206,13 +206,13 @@ export default {
 
 .title {
   position: absolute;
-  top: 50rpx;
+  top: 200rpx;
   left: 100rpx;
 }
 
 .sub-title {
   position: absolute;
-  top: 100rpx;
+  top: 250rpx;
   left: 150rpx;
 }
 
