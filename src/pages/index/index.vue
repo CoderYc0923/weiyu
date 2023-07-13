@@ -8,38 +8,46 @@
         <text class="tools-item" @click="uploadFile">上传录音</text>
       </view>
     </view>
-    <text class="sub-title">倾听了{{ count }}次对话</text>
     <text class="email-title" v-if="canEmail">把想说的话塞进她（他）的邮箱吧</text>
     <input class="uni-input" v-if="canEmail" focus confirm-type="send" @confirm="handleComfirm" @blur="handleComfirm" />
+    <text class="sub-title">倾听了{{ count }}次对话</text>
     <text class="btn-title" @click="handleClick">{{ btnTitle }}</text>
     <record-show @close="close" v-if="showRecord"></record-show>
+    <time-picker class="time-box" v-if="true" @getTime="getTime"></time-picker>
   </view>
 </template>
 
 <script>
 import audioShow from '../../components/audioShow'
 import recordShow from '../../components/recordShow'
+import timePicker from '../../components/timePicker.vue'
 import homeImg from "../../static/img/localImg";
 import showMessage from '../../utils/showMessage'
+
+import { submitEmail } from '../../api/index'
 
 var innerAudioContext;
 export default {
   components: {
     audioShow,
-    recordShow
+    recordShow,
+    timePicker
   },
   data() {
     return {
       title: "未语",
       count: 1000,
-      isShow: false,
       btnTitle: '',
-      extension: ["m4a", "mp3", "wav", "aac"],
       maxSize: 2 * 1024 * 1024,
+      extension: ["m4a", "mp3", "wav", "aac"],
       isPlay: false,
+      isShow: false,
       showRecord: false,
+      showTime: false,
       canEmail: false,
-      activeEmail: ''
+      activeEmail: '',
+      activeAudio: '',
+      activeTime: ''
     };
   },
   onUnload() {
@@ -55,12 +63,15 @@ export default {
   watch: {
     isShow: {
       handler(newV, oldV) {
-        this.btnTitle = newV ? '发送给她（他）' : '说出想说的话，我会帮你传达'
+        this.btnTitle = newV ? this.titleChange() : '说出想说的话，我会帮你传达'
       },
       immediate: true
     }
   },
   methods: {
+    titleChange() {
+      return this.showTime ? '一切就绪，发送给她（他）吧' : '你想要什么时候对他说呢'
+    },
     handleClick() {
       this.isShow ? this.handleSend() : this.handleShow()
     },
@@ -68,17 +79,36 @@ export default {
       this.isShow = true;
     },
     handleSend() {
-      this.canEmail ? this.sendMail(this.activeEmail) : showMessage('还没说出你想说的话喔')
+      this.canEmail ? this.selectTime() : showMessage('还没说出你想说的话喔')
+    },
+    selectTime() {
+
+    },
+    getTime(timestamp) {
+      console.log('111',timestamp);
+      this.activeTime = timestamp
     },
     sendMail(email) {
       if (this.checkMail(email)) {
+        this.showTime = true;
         //调用接口发送请求
+        let params = {
+          send_email: email,
+          audio_url: this.activeAudio,
+          send_html: '',
+          send_time: this.activeTime
+        }
+        let config = {
+          url: '/email/save',
+          method: 'post',
+          data: params
+        }
       } else {
         showMessage('输入的邮箱有误喔')
       }
     },
     checkMail(email) {
-      console.log('checkMail',email);
+      console.log('checkMail', email);
       const reg = new RegExp('^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$');
       return reg.test(email)
     },
@@ -98,6 +128,7 @@ export default {
         console.log("录音格式错误或大小超出限制");
         return;
       }
+      this.activeAudio = voicePath
       this.createAudioPlay(voicePath);
       this.canEmail = true;
     },
@@ -236,6 +267,14 @@ export default {
   font-size: 12px;
   height: 60rpx;
   padding: 0 15%;
+}
+
+.time-box {
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
 }
 
 .btn-title {
