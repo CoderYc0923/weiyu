@@ -9,7 +9,7 @@
         <text class="tools-item" @click="uploadFile">上传录音</text>
       </view>
     </view>
-    <template v-if="showOther">
+    <template v-if="!showOther">
       <text class="email-title">把想说的话塞进她（他）的邮箱吧</text>
       <input class="uni-input" focus confirm-type="send" @confirm="handleComfirm" @blur="handleComfirm" />
       <time-picker class="time-box" @getTime="getTime"></time-picker>
@@ -214,15 +214,15 @@ export default {
         return;
       }
       innerAudioContext = uni.createInnerAudioContext();
-      innerAudioContext.autoplay = true;
+      // innerAudioContext.autoplay = true;
       innerAudioContext.src = path
       this.activeAudio = path;
       innerAudioContext.onCanplay(() => {
         console.log("可以播放");
+        this.isPlay = true;
       });
       innerAudioContext.onPlay(() => {
         console.log("开始播放");
-        this.isPlay = true;
       });
       innerAudioContext.onPause(() => {
         console.log("暂停播放");
