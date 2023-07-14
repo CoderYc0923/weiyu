@@ -76,11 +76,11 @@
 				}
 			},
 			yearChange(e) {
-				console.log('222',e);
-				this.timeValue = this.years[0][e.detail.value[0]] + '年' + this.years[1][e.detail.value[1]] + '月' + this.years[2][e.detail
+				this.timeValue = this.years[0][e.detail.value[0]] + '-' + this.years[1][e.detail.value[1]] + '-' + this.years[2][e.detail
 					.value[2]
-				] + '日' + '  ' + this.years[3][e.detail.value[3]] + ':' + this.years[4][e.detail.value[4]]
-				this.$emit('getTime', this.timeValue)
+				] + '  ' + this.years[3][e.detail.value[3]] + ':' + this.years[4][e.detail.value[4]] + ':' + this.years[5][e.detail.value[5]]
+				let timestamp = Date.parse(new Date(this.timeValue)) / 1000
+				this.$emit('getTime', timestamp)
 			},
 			wctchPicker(e) {
 				let info = e.detail

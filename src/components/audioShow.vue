@@ -10,17 +10,12 @@ export default {
     data() {
         return {
             showArr: [7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 3, 4, 5, 6, 7],
-            playState: 'running'
+            playState: 'paused'
         };
     },
-    onShow() { },
-    computed: {
-
-    },
     methods: {
-        handleClick() {
-            this.playState = this.playState === 'paused' ? 'running' : 'paused'
-            this.$emit('playState', this.playState)
+        changeState(state) {
+            this.playState = state
         }
     },
 };

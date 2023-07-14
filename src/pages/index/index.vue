@@ -1,19 +1,22 @@
 <template>
   <view class="content" :style="{ backgroundImage: bgHomeImg }">
     <text class="title">{{ title }}</text>
-    <view class="tools" v-if="isShow">
-      <audio-show @playState="watchPlayState" v-if="isPlay"></audio-show>
+    <view class="tools" v-if="showAudio">
+      <audio-show ref="audioShowRef" v-if="isPlay"></audio-show>
       <view class="tools-bottom">
         <text class="tools-item" @click="startRecord">亲口说</text>
+        <text class="tools-item" @click="changeState" v-if="isPlay">{{ stateTitle }}</text>
         <text class="tools-item" @click="uploadFile">上传录音</text>
       </view>
     </view>
-    <text class="email-title" v-if="canEmail">把想说的话塞进她（他）的邮箱吧</text>
-    <input class="uni-input" v-if="canEmail" focus confirm-type="send" @confirm="handleComfirm" @blur="handleComfirm" />
+    <template v-if="showOther">
+      <text class="email-title">把想说的话塞进她（他）的邮箱吧</text>
+      <input class="uni-input" focus confirm-type="send" @confirm="handleComfirm" @blur="handleComfirm" />
+      <time-picker class="time-box" @getTime="getTime"></time-picker>
+    </template>
     <text class="sub-title">倾听了{{ count }}次对话</text>
     <text class="btn-title" @click="handleClick">{{ btnTitle }}</text>
     <record-show @close="close" v-if="showRecord"></record-show>
-    <time-picker class="time-box" v-if="true" @getTime="getTime"></time-picker>
   </view>
 </template>
 
@@ -40,14 +43,17 @@ export default {
       btnTitle: '',
       maxSize: 2 * 1024 * 1024,
       extension: ["m4a", "mp3", "wav", "aac"],
-      isPlay: false,
-      isShow: false,
-      showRecord: false,
-      showTime: false,
-      canEmail: false,
+      playState: 'paused',
+      stateTitle: '',
+      rules: [],
       activeEmail: '',
       activeAudio: '',
-      activeTime: ''
+      activeTime: '',
+      isPlay: false,
+      showRecord: false,
+      showAudio: false,
+      showOther: false,
+      isPass: false
     };
   },
   onUnload() {
@@ -61,54 +67,107 @@ export default {
     },
   },
   watch: {
-    isShow: {
+    showAudio: {
       handler(newV, oldV) {
-        this.btnTitle = newV ? this.titleChange() : '说出想说的话，我会帮你传达'
+        this.btnTitle = newV ? '继续完成后面的步骤吧' : '说出想说的话，我会帮你传达'
+      },
+      immediate: true
+    },
+    showOther: {
+      handler(newV, oldV) {
+        this.btnTitle = newV ? '一切就绪，发送给她（他）吧' : this.btnTitle
+      },
+      immediate: true
+    },
+    playState: {
+      handler(newV, oldV) {
+        this.stateTitle = this.showState(newV)
       },
       immediate: true
     }
   },
   methods: {
-    titleChange() {
-      return this.showTime ? '一切就绪，发送给她（他）吧' : '你想要什么时候对他说呢'
+    changeState() {
+      this.playState = this.playState === 'running' ? 'paused' : 'running'
+      this.watchPlayState(this.playState)
+    },
+    showState(state) {
+      let stateTitle = ''
+      switch (state) {
+        case 'running':
+          stateTitle = '暂停';
+          break;
+        case 'paused':
+          stateTitle = '播放'
+          break;
+      }
+      return stateTitle;
+    },
+    checkRules(rules) {
+      if (!rules.length) return true;
+      for (let rule of rules) {
+        if (!this[rule.stats]) {
+          showMessage(rule.msg);
+          return false
+        }
+      }
+      return true
     },
     handleClick() {
-      this.isShow ? this.handleSend() : this.handleShow()
+      if (this.checkRules(this.rules)) {
+        this.showAudio ? this.handleNext() : this.handleAudio()
+      }
     },
-    handleShow() {
-      this.isShow = true;
+    handleAudio() {
+      this.showAudio = true;
+      this.rules = [
+        {
+          stats: 'activeAudio',
+          msg: '还没说出你想说的话喔'
+        }
+      ]
     },
-    handleSend() {
-      this.canEmail ? this.selectTime() : showMessage('还没说出你想说的话喔')
+    handleNext() {
+      this.showOther ? this.handleSubmit() : this.handleOthers()
     },
-    selectTime() {
-
+    handleOthers() {
+      this.showOther = true;
+      this.rules = [{
+        stats: 'activeAudio',
+        msg: '还没说出你想说的话喔'
+      }, {
+        stats: 'activeEmail',
+        msg: '还没填写你要寄送的邮箱喔'
+      }, {
+        stats: 'activeTime',
+        msg: '还没选择你要寄送的时间喔'
+      }]
+    },
+    handleSubmit() {
+      this.sendMail();
     },
     getTime(timestamp) {
-      console.log('111',timestamp);
       this.activeTime = timestamp
     },
-    sendMail(email) {
-      if (this.checkMail(email)) {
-        this.showTime = true;
+    sendMail() {
+      if (this.checkMail(this.activeEmail)) {
         //调用接口发送请求
         let params = {
-          send_email: email,
+          send_email: this.activeEmail,
           audio_url: this.activeAudio,
           send_html: '',
           send_time: this.activeTime
         }
-        let config = {
-          url: '/email/save',
-          method: 'post',
-          data: params
-        }
+        submitEmail(params).then((res) => {
+          console.log('submitEmail', res);
+        }).catch(err => {
+          console.log(err);
+        })
       } else {
         showMessage('输入的邮箱有误喔')
       }
     },
     checkMail(email) {
-      console.log('checkMail', email);
       const reg = new RegExp('^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$');
       return reg.test(email)
     },
@@ -139,7 +198,9 @@ export default {
           break;
         case 'paused':
           innerAudioContext.pause();
+          break;
       }
+      this.$refs.audioShowRef.changeState(state)
     },
     checkTypeAndSize(size, path) {
       if (size > this.maxSize) return false;
@@ -155,6 +216,7 @@ export default {
       innerAudioContext = uni.createInnerAudioContext();
       innerAudioContext.autoplay = true;
       innerAudioContext.src = path
+      this.activeAudio = path;
       innerAudioContext.onCanplay(() => {
         console.log("可以播放");
       });
@@ -167,8 +229,8 @@ export default {
       });
       innerAudioContext.onEnded(() => {
         console.log("播放结束");
-        this.isPlay = false;
-        innerAudioContext.destroy();
+        this.playState = 'paused';
+        this.$refs.audioShowRef.changeState('paused')
       });
       innerAudioContext.onError((res) => {
         console.log(res.errMsg);
